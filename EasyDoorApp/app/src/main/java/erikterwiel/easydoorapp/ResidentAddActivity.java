@@ -4,12 +4,15 @@ import android.content.Context;
 import android.media.Image;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -49,6 +52,7 @@ public class ResidentAddActivity extends AppCompatActivity {
     private void beginUpload(String filePath) {
         File file = new File(filePath);
         TransferObserver observer = mTransferUtility.upload(BUCKET_NAME, file.getName(), file);
+        observer.setTransferListener(new UploadListener());
     }
 
     public static TransferUtility getTransferUtility(Context context) {
@@ -69,5 +73,25 @@ public class ResidentAddActivity extends AppCompatActivity {
                 COGNITO_POOL_ID,
                 Regions.fromName(COGNITO_POOL_REGION));
         return sCredProvider;
+    }
+
+    private class UploadListener implements TransferListener {
+
+        @Override
+        public void onStateChanged(int id, TransferState state) {
+            Log.i(TAG, state + "");
+        }
+
+        @Override
+        public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
+            int percentage = (int) (bytesCurrent / bytesTotal * 100);
+            Log.i(TAG, Integer.toString(percentage) + "% uploaded");
+        }
+
+        @Override
+        public void onError(int id, Exception ex) {
+            ex.printStackTrace();
+            Log.i(TAG, "Error detected");
+        }
     }
 }
