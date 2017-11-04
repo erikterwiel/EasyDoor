@@ -1,7 +1,11 @@
 package erikterwiel.easydoorapp;
 
 import android.content.Context;
+import android.content.Intent;
 import android.media.Image;
+import android.net.Uri;
+import android.provider.MediaStore;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -26,10 +30,14 @@ public class ResidentAddActivity extends AppCompatActivity {
     private static final String COGNITO_POOL_REGION = "us-east-1";
     private static final String BUCKET_NAME = "picturedatabase";
     private static final String BUCKET_REGION = "us-east-1";
+    private static final String PROVIDER_AUTHORITY = "erikterwiel.easydoorapp.fileprovider";
+    private static final int REQUEST_CAMERA = 100;
 
     private TransferUtility mTransferUtility;
     private EditText mNameInput;
     private ImageView mAddPhotoButton;
+    private int mPictureCount = 0;
+    private String mImagePath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,15 +52,33 @@ public class ResidentAddActivity extends AppCompatActivity {
         mAddPhotoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                beginUpload("/sdcard/Pictures/photo_1484877721173.jpg");
+                File file = getFile();
+                Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(
+                        ResidentAddActivity.this, PROVIDER_AUTHORITY, file));
+                startActivityForResult(cameraIntent, REQUEST_CAMERA);
             }
         });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        beginUpload(mImagePath);
     }
 
     private void beginUpload(String filePath) {
         File file = new File(filePath);
         TransferObserver observer = mTransferUtility.upload(BUCKET_NAME, file.getName(), file);
         observer.setTransferListener(new UploadListener());
+    }
+
+    private File getFile() {
+        File folder = new File("sdcard/Pictures/EasyDoor");
+        if (!folder.exists()) folder.mkdir();
+        File image = new File(
+                folder, mNameInput.getText() + Integer.toString(mPictureCount) + ".png");
+        mImagePath = image.getAbsolutePath();
+        return image;
     }
 
     public static TransferUtility getTransferUtility(Context context) {
