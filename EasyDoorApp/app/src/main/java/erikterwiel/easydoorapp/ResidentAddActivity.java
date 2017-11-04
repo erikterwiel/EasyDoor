@@ -1,9 +1,11 @@
 package erikterwiel.easydoorapp;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.media.Image;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.provider.MediaStore;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
@@ -21,8 +23,13 @@ import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import java.io.File;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public class ResidentAddActivity extends AppCompatActivity {
 
@@ -35,6 +42,8 @@ public class ResidentAddActivity extends AppCompatActivity {
     private static final int REQUEST_CAMERA = 100;
 
     private TransferUtility mTransferUtility;
+    private AmazonS3Client mS3Client;
+    private ArrayList<HashMap<String, Object>> mTransferRecordMaps;
     private EditText mNameInput;
     private ImageView mAddPhotoButton;
     private int mPictureCount = 0;
@@ -47,6 +56,7 @@ public class ResidentAddActivity extends AppCompatActivity {
         setContentView(R.layout.activity_resident_add);
 
         mTransferUtility = getTransferUtility(this);
+        mTransferRecordMaps = new ArrayList<HashMap<String, Object>>();
 
         mNameInput = (EditText) findViewById(R.id.add_name_input);
         mAddPhotoButton = (ImageView) findViewById(R.id.add_add_photo_button);
@@ -61,6 +71,12 @@ public class ResidentAddActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        new GetFileListTask().execute();
     }
 
     @Override
@@ -93,15 +109,15 @@ public class ResidentAddActivity extends AppCompatActivity {
         return image;
     }
 
-    public static TransferUtility getTransferUtility(Context context) {
+    public TransferUtility getTransferUtility(Context context) {
+        mS3Client = getS3Client(context.getApplicationContext());
         TransferUtility sTransferUtility = new TransferUtility(
-                getS3Client(context.getApplicationContext()), context.getApplicationContext());
+                mS3Client, context.getApplicationContext());
         return sTransferUtility;
     }
 
     public static AmazonS3Client getS3Client(Context context) {
-        AmazonS3Client sS3Client = new AmazonS3Client(
-                getCredProvider(context.getApplicationContext()));
+        AmazonS3Client sS3Client = new AmazonS3Client(getCredProvider(context.getApplicationContext()));
         return sS3Client;
     }
 
@@ -130,6 +146,37 @@ public class ResidentAddActivity extends AppCompatActivity {
         public void onError(int id, Exception ex) {
             ex.printStackTrace();
             Log.i(TAG, "Error detected");
+        }
+    }
+
+    private class GetFileListTask extends AsyncTask<Void, Void, Void> {
+        private List<S3ObjectSummary> s3ObjList;
+        private ProgressDialog dialog;
+
+        @Override
+        protected void onPreExecute() {
+            dialog = ProgressDialog.show(ResidentAddActivity.this,
+                    getString(R.string.add_refreshing),
+                    getString(R.string.add_please_wait));
+        }
+
+        @Override
+        protected Void doInBackground(Void... inputs) {
+            // Queries files in the bucket from S3.
+            s3ObjList = mS3Client.listObjects(BUCKET_NAME).getObjectSummaries();
+            mTransferRecordMaps.clear();
+            for (S3ObjectSummary summary : s3ObjList) {
+                HashMap<String, Object> map = new HashMap<String, Object>();
+                map.put("key", summary.getKey());
+                mTransferRecordMaps.add(map);
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            dialog.dismiss();
+//            simpleAdapter.notifyDataSetChanged();
         }
     }
 }
