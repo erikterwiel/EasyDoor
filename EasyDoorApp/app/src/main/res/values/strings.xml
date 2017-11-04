@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">EasyDoorApp</string>
     <string name="add_add_button">Add Button</string>
+    <string name="add_hint">Resident name</string>
 </resources>

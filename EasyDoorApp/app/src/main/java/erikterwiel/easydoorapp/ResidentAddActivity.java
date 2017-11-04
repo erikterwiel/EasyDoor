@@ -12,6 +12,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
@@ -52,11 +53,12 @@ public class ResidentAddActivity extends AppCompatActivity {
         mAddPhotoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                File file = getFile();
-                Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(
-                        ResidentAddActivity.this, PROVIDER_AUTHORITY, file));
-                startActivityForResult(cameraIntent, REQUEST_CAMERA);
+                if (!mNameInput.getText().toString().equals("")) {
+                    beginCamera();
+                } else {
+                    Toast.makeText(ResidentAddActivity.this,
+                            "Please enter a name for the resident", Toast.LENGTH_LONG).show();
+                }
             }
         });
     }
@@ -66,10 +68,20 @@ public class ResidentAddActivity extends AppCompatActivity {
         beginUpload(mImagePath);
     }
 
+    private void beginCamera() {
+        File file = getFile();
+        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(
+                ResidentAddActivity.this, PROVIDER_AUTHORITY, file));
+        startActivityForResult(cameraIntent, REQUEST_CAMERA);
+    }
+
     private void beginUpload(String filePath) {
         File file = new File(filePath);
         TransferObserver observer = mTransferUtility.upload(BUCKET_NAME, file.getName(), file);
         observer.setTransferListener(new UploadListener());
+        mPictureCount += 1;
+        if (mPictureCount < 5) beginCamera();
     }
 
     private File getFile() {
