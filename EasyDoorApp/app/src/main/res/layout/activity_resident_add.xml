@@ -9,7 +9,7 @@
         android:id="@+id/add_name_input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Mansour"/>
+        android:text="mansour"/>
     <ImageView
         android:id="@+id/add_add_photo_button"
         android:layout_width="64dp"

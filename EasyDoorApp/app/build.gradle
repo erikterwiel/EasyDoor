@@ -39,5 +39,5 @@ dependencies {
     implementation 'com.amazonaws:aws-android-sdk-core:2.6.6'
     implementation 'com.amazonaws:aws-android-sdk-s3:2.6.6'
     implementation 'com.amazonaws:aws-android-sdk-ddb:2.6.6'
-    implementation 'com.amazonaws:aws-android-sdk-s3:2.6.6'
+    implementation 'com.amazonaws:aws-android-sdk-cognito:2.6.6'
 }

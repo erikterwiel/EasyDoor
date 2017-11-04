@@ -1,10 +1,13 @@
 package erikterwiel.easydoorapp;
 
+import android.Manifest;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -43,13 +46,11 @@ public class ResidentAddActivity extends AppCompatActivity {
 
     private static final String TAG = "ResidentAddActivity";
     private static final int REQUEST_IMAGE_CAPTURE = 100;
-    private static final String COLLECTION_ID = "collectionID";
-    private static final String S3_BUCKET = "easydoor2";
+    private static final int REQUEST_PERMISSIONS = 101;
+    private static final String S3_BUCKET = "picturedatabase";
 
-    private AmazonS3 mS3;
+    private AmazonS3Client mS3;
     private TransferUtility mTransferUtility;
-    private TransferListener mTransferListener;
-    private String mFileName;
     private String mFilePath;
     private int mPictureCount = 0;
     private EditText mNameInput;
@@ -64,13 +65,14 @@ public class ResidentAddActivity extends AppCompatActivity {
         setContentView(R.layout.activity_resident_add);
 
         // Connects to AWS Rekognition
-        CognitoCachingCredentialsProvider credentials = new CognitoCachingCredentialsProvider(
+        CognitoCachingCredentialsProvider credentialsProvider = new CognitoCachingCredentialsProvider(
                 getApplicationContext(),
-                "us-east-1:a6f60d91-90d3-429f-a625-50ef21ad7ebb",
-                Regions.US_EAST_1);
-        mS3 = new AmazonS3Client(credentials);
+                "us-east-1:a0f4188d-f4cd-45f5-920b-a6a942b4721c", // Identity pool ID
+                Regions.US_EAST_1 // Region
+        );
+        mS3 = new AmazonS3Client(credentialsProvider);
         mS3.setRegion(Region.getRegion(Regions.US_EAST_1));
-        mTransferUtility = new TransferUtility(mS3, getApplicationContext());
+        mTransferUtility = new TransferUtility(mS3, this);
 
         // Links XML attributes to Java
         mNameInput = (EditText) findViewById(R.id.add_name_input);
@@ -84,13 +86,8 @@ public class ResidentAddActivity extends AppCompatActivity {
     }
 
     private void takePicture() {
-         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        File file = null;
-        try {
-            file = createFile();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        File file = createFile();
         if (file != null) {
             Log.i(TAG, "File is not null");
             Uri fileUri = FileProvider.getUriForFile(
@@ -104,26 +101,43 @@ public class ResidentAddActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                    REQUEST_PERMISSIONS);
+            File toSend = new File("sdcard/Pictures/photo_1484877721173.jpg");
+            Log.i(TAG, Long.toString(toSend.getTotalSpace()));
+            TransferObserver transferObserver = mTransferUtility.upload(
+                    S3_BUCKET,
+                    toSend.getName(),
+                    toSend);
+            transferObserver.setTransferListener(new TransferListener() {
+                @Override
+                public void onStateChanged(int id, TransferState state) {
+                    Log.i(TAG, state + "");
+                }
+                @Override
+                public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
+                    int percentage = (int) (bytesCurrent/bytesTotal * 100);
+                    Log.i(TAG, Integer.toString(percentage) + "% uploaded");
+                }
+                @Override
+                public void onError(int id, Exception ex) {
+                    ex.printStackTrace();
+                    Log.i(TAG, "Error detected");
+                }
+            });
 
-            TransferObserver transferObserver =
-                    mTransferUtility.upload(S3_BUCKET, mFileName, new File(mFilePath));
-            transferObserver.setTransferListener(mTransferListener);
-
-            mPictureCount += 1;
-            if (mPictureCount != 5) takePicture();
+         //   mPictureCount += 1;
+            //  if (mPictureCount != 5) takePicture();
         }
     }
 
-    private File createFile() throws IOException {
-        String timeStamp =
-                new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.CANADA).format(new Date());
-        String fileName =
-                mNameInput.getText() + "_" + Integer.toString(mPictureCount) + "_" + timeStamp;
-        File tempStorage = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File file = File.createTempFile(fileName, ".jpg", tempStorage);
-        mFileName = fileName;
-        mFilePath = file.getAbsolutePath();
-        Log.i(TAG, mFileName + " ||| " + mFilePath);
+    private File createFile() {
+        File folder = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File file = new File(folder, mNameInput.getText() + Integer.toString(mPictureCount));
+        mFilePath = file.getPath();
+        Log.i(TAG, "File path is: " + mFilePath);
         return file;
     }
 }
