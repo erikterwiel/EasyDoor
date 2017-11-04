@@ -76,7 +76,7 @@ public class ResidentAddActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        new GetFileListTask().execute();
+     //   new GetFileListTask().execute();
     }
 
     @Override
@@ -104,7 +104,7 @@ public class ResidentAddActivity extends AppCompatActivity {
         File folder = new File("sdcard/Pictures/EasyDoor");
         if (!folder.exists()) folder.mkdir();
         File image = new File(
-                folder, mNameInput.getText() + Integer.toString(mPictureCount) + ".png");
+                folder, mNameInput.getText() + Integer.toString(mPictureCount) + ".jpg");
         mImagePath = image.getAbsolutePath();
         return image;
     }
@@ -162,7 +162,6 @@ public class ResidentAddActivity extends AppCompatActivity {
 
         @Override
         protected Void doInBackground(Void... inputs) {
-            // Queries files in the bucket from S3.
             s3ObjList = mS3Client.listObjects(BUCKET_NAME).getObjectSummaries();
             mTransferRecordMaps.clear();
             for (S3ObjectSummary summary : s3ObjList) {
