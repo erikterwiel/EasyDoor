@@ -13,6 +13,10 @@
         android:textAppearance="@style/TextAppearance.AppCompat.Title"
         android:inputType="textCapSentences|text"
         android:hint="@string/add_hint"/>
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/add_picture_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
     <ImageView
         android:id="@+id/add_add_photo_button"
         android:layout_width="64dp"

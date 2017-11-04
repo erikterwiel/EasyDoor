@@ -29,20 +29,16 @@ android {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation 'com.android.support:appcompat-v7:26.1.0'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
     implementation 'com.android.support:recyclerview-v7:26.1.0'
-    //Currently fixing bug between the android-sdk vs java-sdk, can't put both in dependancy or it will crash
-//    implementation 'com.amazonaws:aws-android-sdk-rekognition:2.6.6'
-    implementation 'com.amazonaws:aws-java-sdk-rekognition:1.11.224'
-    implementation 'com.amazonaws:aws-java-sdk-sns:1.11.224'
-//    implementation('org.apache.httpcomponents:httpmime:4.3.6') {
-//        exclude module: 'httpclient'
-//    }
-//    implementation 'org.apache.httpcomponents:httpclient-android:4.3.5'
-//    implementation group: 'org.apache.httpcomponents' , name: 'httpclient-android' , version: '4.3.5.1'
+    implementation 'com.amazonaws:aws-android-sdk-rekognition:2.6.6'
+    implementation 'com.amazonaws:aws-android-sdk-core:2.6.6'
+    implementation 'com.amazonaws:aws-android-sdk-s3:2.6.6'
+    implementation 'com.amazonaws:aws-android-sdk-ddb:2.6.6'
+    implementation 'com.amazonaws:aws-android-sdk-cognito:2.6.6'
 }
