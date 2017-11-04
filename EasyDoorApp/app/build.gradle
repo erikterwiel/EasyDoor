@@ -36,5 +36,8 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
     implementation 'com.android.support:recyclerview-v7:26.1.0'
-    implementation 'com.amazonaws:aws-java-sdk-rekognition:1.11.224'
+    implementation 'com.amazonaws:aws-android-sdk-core:2.6.6'
+    implementation 'com.amazonaws:aws-android-sdk-s3:2.6.6'
+    implementation 'com.amazonaws:aws-android-sdk-ddb:2.6.6'
+    implementation 'com.amazonaws:aws-android-sdk-s3:2.6.6'
 }
