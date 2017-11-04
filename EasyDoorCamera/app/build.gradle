@@ -39,6 +39,7 @@ dependencies {
     //Currently fixing bug between the android-sdk vs java-sdk, can't put both in dependancy or it will crash
 //    implementation 'com.amazonaws:aws-android-sdk-rekognition:2.6.6'
     implementation 'com.amazonaws:aws-java-sdk-rekognition:1.11.224'
+    implementation 'com.amazonaws:aws-java-sdk-sns:1.11.224'
 //    implementation('org.apache.httpcomponents:httpmime:4.3.6') {
 //        exclude module: 'httpclient'
 //    }

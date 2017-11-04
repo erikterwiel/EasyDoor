@@ -8,6 +8,7 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.rekognition.AmazonRekognition;
 import com.amazonaws.services.rekognition.AmazonRekognitionClientBuilder;
@@ -19,6 +20,10 @@ import com.amazonaws.services.rekognition.model.DetectLabelsResult;
 import com.amazonaws.services.rekognition.model.Image;
 import com.amazonaws.services.rekognition.model.Label;
 import com.amazonaws.services.rekognition.model.S3Object;
+import com.amazonaws.services.sns.AmazonSNSClient;
+import com.amazonaws.services.sns.model.PublishRequest;
+import com.amazonaws.services.sns.model.PublishResult;
+import com.amazonaws.services.sns.model.SubscribeRequest;
 
 import java.util.List;
 
@@ -38,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
 
         AWSCredentials credentials;
         try {
-            credentials = new BasicAWSCredentials("AKIAIDS2JKXNRSWWJG4A",",wR+MzQU3SW7eDKK0s5uodUEvFPP8lE0B8BcDSDGe");
+            credentials = new BasicAWSCredentials("AKIAIDS2JKXNRSWWJG4A","wR+MzQU3SW7eDKK0s5uodUEvFPP8lE0B8BcDSDGe");
         } catch (Exception e) {
             throw new AmazonClientException("Pleases check for valid credentials", e);
         }
@@ -77,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
             CompareFacesResult compareFacesResult = rekognitionClient.compareFaces(request);
             List <CompareFacesMatch> faceDetails = compareFacesResult.getFaceMatches();
             if(!faceDetails.isEmpty()){
-                System.out.println("Match, opening door.");
+                Log.i("info","Match, opening door.");
             }else{
                 for(int i = 1; i < numSuspects; i++){
                     targetImage = "suspect" + i + ".jpg";
@@ -94,15 +99,35 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 if(foundSuspect){
-                    System.out.println("Calling police...");
+                    Log.i("info","Calling police...");
                 }else if(possibleDanger){
-                    System.out.println("Visitor could have dangerous weapons ...");
+                    Log.i("info","Visitor could have dangerous weapons ...");
                 }else{
-                    System.out.println("Retake photo or nothing is there.");
+                    Log.i("info","Retake photo or nothing is there.");
                 }
             }
         }catch(Exception e){
-            System.out.println("No face comparsion found, take a new picture.");
+            Log.i("info","No face comparison found, take a new picture.");
         }
+    }
+
+    private void sendEmail(){
+        AWSCredentials credentials;
+        try {
+            credentials = new BasicAWSCredentials("AKIAJTWTGYFXX5WUF3WA","Ve49J6xtSAMFzIJxdKvIv+4J3HAncpY3ljC5RMeo");
+        } catch (Exception e) {
+            throw new AmazonClientException("Pleases check for valid credentials", e);
+        }
+        String email = "name@gmail.com";
+        AmazonSNSClient snsClient = new AmazonSNSClient(credentials);
+        snsClient.setRegion(Region.getRegion(Regions.US_EAST_1));
+        SubscribeRequest subRequest = new SubscribeRequest("arn:aws:sns:us-east-1:953923891640:EasyDoorInfo", "email", email);
+        snsClient.subscribe(subRequest);
+        System.out.println("SubscribeRequest - " + snsClient.getCachedResponseMetadata(subRequest));
+        System.out.println("Check your email and confirm subscription.");
+        String msg = "My text published to SNS topic with email endpoint";
+        PublishRequest publishRequest = new PublishRequest("arn:aws:sns:us-east-1:953923891640:EasyDoorInfo", msg);
+        PublishResult publishResult = snsClient.publish(publishRequest);
+        System.out.println("MessageId - " + publishResult.getMessageId());
     }
 }
