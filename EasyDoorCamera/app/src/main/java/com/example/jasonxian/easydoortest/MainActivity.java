@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
 
         AWSCredentials credentials;
         try {
-            credentials = new BasicAWSCredentials("AKIAIDS2JKXNRSWWJG4A",",wR+MzQU3SW7eDKK0s5uodUEvFPP8lE0B8BcDSDGe");
+            credentials = new BasicAWSCredentials("publickeyinfo","privatekeyinfo");
         } catch (Exception e) {
             throw new AmazonClientException("Pleases check for valid credentials", e);
         }
