@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">EasyDoorTest</string>
+    <string name="refreshing">Refreshing</string>
+    <string name="please_wait">Please wait</string>
 </resources>
