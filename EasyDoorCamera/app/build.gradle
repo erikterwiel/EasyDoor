@@ -39,8 +39,5 @@ dependencies {
     implementation 'com.amazonaws:aws-android-sdk-rekognition:2.6.6'
     implementation 'com.amazonaws:aws-android-sdk-cognito:2.6.6'
     implementation 'com.amazonaws:aws-android-sdk-sns:2.6.6'
-<<<<<<< HEAD
-=======
     implementation 'com.amazonaws:aws-android-sdk-s3:2.6.6'
->>>>>>> 39e22263c52771fcb0e4d1d6c14e1210fe2ea864
 }

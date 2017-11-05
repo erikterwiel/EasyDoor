@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothSocket;
@@ -60,6 +61,7 @@ import java.util.UUID;
 
 import static android.bluetooth.BluetoothAdapter.STATE_CONNECTED;
 import static android.bluetooth.BluetoothAdapter.STATE_DISCONNECTED;
+import static java.lang.Thread.sleep;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -70,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String BUCKET_REGION = "us-east-1";
     private static final String PROVIDER_AUTHORITY = "erikterwiel.easydoorcamera.fileprovider";
     private final UUID mUUID = UUID.fromString("19B10010-E8F2-537E-4F6C-D104768A1214");
+    private final UUID mCharUUID = UUID.fromString("19B10011-E8F2-537E-4F6C-D104768A1214");
     private static final int REQUEST_CAMERA = 100;
     private static final int REQUEST_ENABLE_BT = 101;
     private static final float SIMILARITY_THRESHOLD = 70F;
@@ -80,9 +83,13 @@ public class MainActivity extends AppCompatActivity {
     private AmazonRekognitionClient mAmazonRekognitionClient;
     private AWSCredentialsProvider mCredentialsProvider;
     private AmazonS3Client mS3Client;
+    private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
-    private BluetoothSocket mBluetoothSocket;
+    private BluetoothGattCallback mGattCallback;
     private BluetoothGatt mBluetoothGatt;
+    private BluetoothGattService Service;
+    private BluetoothGattCharacteristic mWriteCharacteristic;
+    private BluetoothDevice mDevice;
     private String mCameraPath;
     private int mInputIndex = 0;
 
@@ -92,86 +99,43 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
-            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-        }
-        private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
-            @Override
-            public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-                if (newState == BluetoothProfile.STATE_CONNECTED) {
-                    Log.i(TAG, "Connected to GATT server.");
-                    Log.i(TAG, "Attempting to start service discovery:" +
-                            mBluetoothGatt.discoverServices());
-                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                    Log.i(TAG, "Disconnected from GATT server.");
-                }
-            }
-            @Override
-            // New services discovered
-            public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-                if (status == BluetoothGatt.GATT_SUCCESS) {} else {
-                    Log.w(TAG, "onServicesDiscovered received: " + status);
-                }
-            }
-            @Override
-            // Result of a characteristic read operation
-            public void onCharacteristicRead(BluetoothGatt gatt,
-                                             BluetoothGattCharacteristic characteristic,
-                                             int status) {
-                if (status == BluetoothGatt.GATT_SUCCESS) {}
-            }
-        }
-        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice("98:4F:EE:0F:38:5F");
-        mBluetoothGatt = device.connectGatt(this, false, mGattCallback);
-        new ConnectBluetooth().execute();
+        setupBluetooth();
 
         mTransferUtility = getTransferUtility(this);
         mTransferRecordMaps = new ArrayList<HashMap<String, Object>>();
         mAmazonRekognitionClient = new AmazonRekognitionClient(mCredentialsProvider);
         mTransferRecordMaps.clear();
+
         new GetFileListTask().execute();
+
         launchCamera();
     }
 
-    private void broadcastUpdate(final String action) {
-        final Intent intent = new Intent(action);
-        sendBroadcast(intent);
-    }
-
-    private void broadcastUpdate(final String action,
-                                 final BluetoothGattCharacteristic characteristic) {
-        final Intent intent = new Intent(action);
-
-        // This is special handling for the Heart Rate Measurement profile. Data
-        // parsing is carried out as per profile specifications.
-        if (UUID_HEART_RATE_MEASUREMENT.equals(characteristic.getUuid())) {
-            int flag = characteristic.getProperties();
-            int format = -1;
-            if ((flag & 0x01) != 0) {
-                format = BluetoothGattCharacteristic.FORMAT_UINT16;
-                Log.d(TAG, "Heart rate format UINT16.");
-            } else {
-                format = BluetoothGattCharacteristic.FORMAT_UINT8;
-                Log.d(TAG, "Heart rate format UINT8.");
+    private void setupBluetooth() {
+        mBluetoothManager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
+        mBluetoothAdapter = mBluetoothManager.getAdapter();
+        mDevice = mBluetoothAdapter.getRemoteDevice("98:4F:EE:0F:38:5F");
+        mGattCallback = new BluetoothGattCallback() {
+            @Override
+            public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+                super.onConnectionStateChange(gatt, status, newState);
+                if (newState == STATE_CONNECTED) {
+                    Log.i(TAG, "Device connected");
+                    try {
+                        sleep(600);
+                    } catch (Exception ex) {}
+                    mBluetoothGatt.discoverServices();
+                }
             }
-            final int heartRate = characteristic.getIntValue(format, 1);
-            Log.d(TAG, String.format("Received heart rate: %d", heartRate));
-            intent.putExtra(EXTRA_DATA, String.valueOf(heartRate));
-        } else {
-            // For all other profiles, writes the data formatted in HEX.
-            final byte[] data = characteristic.getValue();
-            if (data != null && data.length > 0) {
-                final StringBuilder stringBuilder = new StringBuilder(data.length);
-                for(byte byteChar : data)
-                    stringBuilder.append(String.format("%02X ", byteChar));
-                intent.putExtra(EXTRA_DATA, new String(data) + "\n" +
-                        stringBuilder.toString());
+            @Override
+            public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+                super.onServicesDiscovered(gatt, status);
+                Log.i(TAG, "Service discovered");
+                Service = mBluetoothGatt.getService(mUUID);
             }
-        }
-        sendBroadcast(intent);
+        };
+        mBluetoothGatt = mDevice.connectGatt(this, false, mGattCallback);
+        if (mBluetoothGatt == null) Log.i(TAG, " not found");
     }
 
     private class GetFileListTask extends AsyncTask<Void, Void, Void> {
@@ -224,6 +188,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        unlockDoor();
         new CompareFace().execute();
     }
 
@@ -303,35 +268,29 @@ public class MainActivity extends AppCompatActivity {
 
     private void unlockDoor() {
         Log.i(TAG, "unlockDoor() called");
-        MainActivity.this.mWrite
-        /*
-        while (mBluetoothSocket == null) {}
-        while (!mBluetoothSocket.isConnected()) {}
-        try {
-            mBluetoothSocket.getOutputStream().write("0".getBytes());
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        */
+        byte[] value = new byte[1];
+        value[0] = (byte) 0;
+        mWriteCharacteristic = Service.getCharacteristic(mCharUUID);
+        mWriteCharacteristic.setValue(value);
+        boolean status = mBluetoothGatt.writeCharacteristic(mWriteCharacteristic);
+        Log.i(TAG, "Command sent to Arduino: " + status);
     }
 
     private void alertIntruder() {
         Log.i(TAG, "alertIndtruder() called");
-        String email = "jasonxixan0@gmail.com";
+
+        byte[] value = new byte[1];
+        value[0] = (byte) 1;
+        mWriteCharacteristic = Service.getCharacteristic(mCharUUID);
+        mWriteCharacteristic.setValue(value);
+        boolean status = mBluetoothGatt.writeCharacteristic(mWriteCharacteristic);
+
         AmazonSNSClient snsClient = new AmazonSNSClient(mCredentialsProvider);
         snsClient.setRegion(Region.getRegion(Regions.US_EAST_1));
         String msg = "EasyDoor has detected an unknown individual outside your door.";
-        PublishRequest publishRequest = new PublishRequest("arn:aws:sns:us-east-1:953923891640:EasyDoorInfo", msg);
+        PublishRequest publishRequest = new PublishRequest(
+                "arn:aws:sns:us-east-1:953923891640:email-erik", msg);
         PublishResult publishResult = snsClient.publish(publishRequest);
-        /*
-        while (mBluetoothSocket == null) {}
-        while (!mBluetoothSocket.isConnected()) {}
-        try {
-            mBluetoothSocket.getOutputStream().write("1".getBytes());
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        */
     }
 
     private File getFile() {
@@ -341,25 +300,6 @@ public class MainActivity extends AppCompatActivity {
                 folder, "inputCamera.jpg");
         mCameraPath = image.getAbsolutePath();
         return image;
-    }
-
-    private class ConnectBluetooth extends AsyncTask<Void, Void, Void> {
-        @Override
-        protected Void doInBackground(Void... devices) {
-            ActivityCompat.requestPermissions(MainActivity.this, new String[] {
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                    Manifest.permission.READ_EXTERNAL_STORAGE,
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION}, 101);
-            try {
-                BluetoothDevice device = mBluetoothAdapter.getRemoteDevice("98:4F:EE:0F:38:5F");
-                mBluetoothSocket = device.createInsecureRfcommSocketToServiceRecord(mUUID);
-                mBluetoothSocket.connect();
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-            return null;
-        }
     }
 
     @Override
