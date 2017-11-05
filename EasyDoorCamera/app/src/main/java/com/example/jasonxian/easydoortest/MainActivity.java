@@ -214,7 +214,6 @@ public class MainActivity extends AppCompatActivity {
                 DetectLabelsResult detectLabelsResult =
                         mAmazonRekognitionClient.detectLabels(detectLabelsRequest);
                 List<Label> labels = detectLabelsResult.getLabels();
-
                 for (int i = 0; i < labels.size(); i++) {
                     String label = labels.get(i).getName();
                     if (label.equals("People") || label.equals("Person") || label.equals("Human")) isFace = true;
@@ -286,10 +285,11 @@ public class MainActivity extends AppCompatActivity {
 
         AmazonSNSClient snsClient = new AmazonSNSClient(mCredentialsProvider);
         snsClient.setRegion(Region.getRegion(Regions.US_EAST_1));
-        String msg = "EasyDoor has detected an unknown individual outside your door.";
+        String msg = "Easy Door has detected an unknown individual outside your door.";
+        String subject = "IMPORTANT: Easy Door Intruder Alert";
         PublishRequest publishRequest = new PublishRequest(
-                "arn:aws:sns:us-east-1:953923891640:email-erik", msg);
-        PublishResult publishResult = snsClient.publish(publishRequest);
+                "arn:aws:sns:us-east-1:953923891640:email-erik", msg, subject);
+        snsClient.publish(publishRequest);
     }
 
     private File getFile() {
