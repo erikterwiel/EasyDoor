@@ -5,8 +5,8 @@
 
 #include <CurieBLE.h>
 
-const int button = 4; // set button to on-board LED
-const int LED = 2; // set LED to digital pin 4
+const int button = 4; 
+const int LED = 2; 
 const int extra = 13;
 
 BLEService ledService("19B10010-E8F2-537E-4F6C-D104768A1214"); // create service
@@ -72,13 +72,13 @@ void loop() {
     // update LED, either central has written to characteristic or button state has changed
     if (ledCharacteristic.value()) {
       Serial.println("LED on");
-//    digitalWrite(button, HIGH);
-      digitalWrite(extra, HIGH);
+      digitalWrite(button, HIGH);
+      digitalWrite(extra,LOW);
 
     } else {
       Serial.println("LED off");
       digitalWrite(button, LOW);
-      digitalWrite(extra, LOW);
+      digitalWrite(extra, HIGH);
 
     }
   }
