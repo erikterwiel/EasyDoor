@@ -1,7 +1,9 @@
 <resources>
     <string name="app_name">EasyDoorApp</string>
     <string name="add_add_button">Add Button</string>
+    <string name="add_done_button">Done Button</string>
     <string name="add_hint">Resident name</string>
     <string name="add_refreshing">Refreshing</string>
     <string name="add_please_wait">Please wait</string>
+    <string name="add_add_images">Add Images</string>
 </resources>
