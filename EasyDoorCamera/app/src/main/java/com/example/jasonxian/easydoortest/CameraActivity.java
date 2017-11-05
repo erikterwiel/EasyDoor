@@ -31,7 +31,7 @@ public class CameraActivity extends AppCompatActivity {
     private void sendEmail(){
         AWSCredentials credentials;
         try {
-            credentials = new BasicAWSCredentials("AKIAJTWTGYFXX5WUF3WA","Ve49J6xtSAMFzIJxdKvIv+4J3HAncpY3ljC5RMeo");
+            credentials = new BasicAWSCredentials("public key","private key");
         } catch (Exception e) {
             throw new AmazonClientException("Pleases check for valid credentials", e);
         }
