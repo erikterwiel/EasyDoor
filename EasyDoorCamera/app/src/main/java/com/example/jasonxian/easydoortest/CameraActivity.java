@@ -21,9 +21,9 @@ public class CameraActivity extends AppCompatActivity {
         email.putExtra(Intent.EXTRA_EMAIL, new String[]{"jasonxian0@gmail.com"});
         email.putExtra(Intent.EXTRA_SUBJECT, "Test Email");
         email.putExtra(Intent.EXTRA_TEXT, "I really hope this works");
-        try{
+        try {
             startActivity(email);
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
