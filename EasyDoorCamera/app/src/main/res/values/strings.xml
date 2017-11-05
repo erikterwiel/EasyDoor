@@ -3,4 +3,5 @@
     <string name="refreshing">Refreshing</string>
     <string name="please_wait">Please wait</string>
     <string name="loading">Loading all residents</string>
+    <string name="matching">Matching face with residents</string>
 </resources>

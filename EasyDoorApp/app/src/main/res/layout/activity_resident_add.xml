@@ -14,12 +14,16 @@
         android:inputType="textCapSentences|text"
         android:hint="@string/add_hint"/>
     <android.support.v7.widget.RecyclerView
-        android:id="@+id/add_picture_list"
+        android:id="@+id/add_picture_view"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-    <ImageView
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"/>
+    <Button
         android:id="@+id/add_add_photo_button"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:src="@drawable/ic_add_a_photo_white_48dp"/>
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:focusable="true"
+        android:text="@string/add_add_images"/>
 </LinearLayout>

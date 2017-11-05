@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/OpenCVwithUVC.iml" filepath="$PROJECT_DIR$/OpenCVwithUVC.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/libuvccamera-release/libuvccamera-release.iml" filepath="$PROJECT_DIR$/libuvccamera-release/libuvccamera-release.iml" />
+      <module fileurl="file://$PROJECT_DIR$/opencv/opencv.iml" filepath="$PROJECT_DIR$/opencv/opencv.iml" />
+      <module fileurl="file://$PROJECT_DIR$/usbCameraCommon-release/usbCameraCommon-release.iml" filepath="$PROJECT_DIR$/usbCameraCommon-release/usbCameraCommon-release.iml" />
+    </modules>
+  </component>
+</project>

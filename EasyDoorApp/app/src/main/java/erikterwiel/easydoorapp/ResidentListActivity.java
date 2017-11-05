@@ -44,4 +44,36 @@ public class ResidentListActivity extends AppCompatActivity {
 
         return super.onCreateOptionsMenu(menu);
     }
+
+    /*
+    private class GetFileListTask extends AsyncTask<Void, Void, Void> {
+        private List<S3ObjectSummary> s3ObjList;
+        private ProgressDialog dialog;
+
+        @Override
+        protected void onPreExecute() {
+            dialog = ProgressDialog.show(ResidentAddActivity.this,
+                    getString(R.string.add_refreshing),
+                    getString(R.string.add_please_wait));
+        }
+
+        @Override
+        protected Void doInBackground(Void... inputs) {
+            s3ObjList = mS3Client.listObjects(BUCKET_NAME).getObjectSummaries();
+            mTransferRecordMaps.clear();
+            for (S3ObjectSummary summary : s3ObjList) {
+                HashMap<String, Object> map = new HashMap<String, Object>();
+                map.put("key", summary.getKey());
+                mTransferRecordMaps.add(map);
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            dialog.dismiss();
+//            simpleAdapter.notifyDataSetChanged();
+        }
+    }
+     */
 }

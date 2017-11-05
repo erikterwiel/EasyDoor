@@ -3,6 +3,7 @@ package erikterwiel.easydoorapp;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.media.Image;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -10,8 +11,16 @@ import android.provider.MediaStore;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -43,9 +52,12 @@ public class ResidentAddActivity extends AppCompatActivity {
 
     private TransferUtility mTransferUtility;
     private AmazonS3Client mS3Client;
-    private ArrayList<HashMap<String, Object>> mTransferRecordMaps;
+    private ArrayList<Drawable> mImageList = new ArrayList<Drawable>();
     private EditText mNameInput;
-    private ImageView mAddPhotoButton;
+    private Button mAddPhotoButton;
+    private RecyclerView mPictureView;
+    private PictureAdapter mPictureAdapter;
+    private MenuItem mDoneButton;
     private int mPictureCount = 0;
     private String mImagePath;
 
@@ -56,10 +68,11 @@ public class ResidentAddActivity extends AppCompatActivity {
         setContentView(R.layout.activity_resident_add);
 
         mTransferUtility = getTransferUtility(this);
-        mTransferRecordMaps = new ArrayList<HashMap<String, Object>>();
 
         mNameInput = (EditText) findViewById(R.id.add_name_input);
-        mAddPhotoButton = (ImageView) findViewById(R.id.add_add_photo_button);
+        mAddPhotoButton = (Button) findViewById(R.id.add_add_photo_button);
+        mPictureView = (RecyclerView) findViewById(R.id.add_picture_view);
+
         mAddPhotoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -71,12 +84,28 @@ public class ResidentAddActivity extends AppCompatActivity {
                 }
             }
         });
+        mPictureView.setLayoutManager(new LinearLayoutManager(
+                this, LinearLayoutManager.HORIZONTAL, false));
+        mPictureAdapter = new PictureAdapter(mImageList);
+        mPictureView.setAdapter(mPictureAdapter);
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-     //   new GetFileListTask().execute();
+    public boolean onCreateOptionsMenu(Menu menu) {
+
+        MenuInflater menuInflater = getMenuInflater();
+        menuInflater.inflate(R.menu.menu_resident_done, menu);
+
+        mDoneButton = menu.findItem(R.id.done_button);
+        mDoneButton.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem menuItem) {
+                finish();
+                return false;
+            }
+        });
+
+        return super.onCreateOptionsMenu(menu);
     }
 
     @Override
@@ -93,6 +122,8 @@ public class ResidentAddActivity extends AppCompatActivity {
     }
 
     private void beginUpload(String filePath) {
+        mImageList.add(Drawable.createFromPath(filePath));
+        mPictureAdapter.notifyItemInserted(mImageList.size());
         File file = new File(filePath);
         TransferObserver observer = mTransferUtility.upload(BUCKET_NAME, file.getName(), file);
         observer.setTransferListener(new UploadListener());
@@ -149,33 +180,46 @@ public class ResidentAddActivity extends AppCompatActivity {
         }
     }
 
-    private class GetFileListTask extends AsyncTask<Void, Void, Void> {
-        private List<S3ObjectSummary> s3ObjList;
-        private ProgressDialog dialog;
+    private class PictureAdapter extends RecyclerView.Adapter<PictureHolder> {
+        private ArrayList<Drawable> imageList;
 
-        @Override
-        protected void onPreExecute() {
-            dialog = ProgressDialog.show(ResidentAddActivity.this,
-                    getString(R.string.add_refreshing),
-                    getString(R.string.add_please_wait));
+        public PictureAdapter(ArrayList<Drawable> incomingList) {
+            imageList = incomingList;
         }
 
         @Override
-        protected Void doInBackground(Void... inputs) {
-            s3ObjList = mS3Client.listObjects(BUCKET_NAME).getObjectSummaries();
-            mTransferRecordMaps.clear();
-            for (S3ObjectSummary summary : s3ObjList) {
-                HashMap<String, Object> map = new HashMap<String, Object>();
-                map.put("key", summary.getKey());
-                mTransferRecordMaps.add(map);
-            }
-            return null;
+        public PictureHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            LayoutInflater layoutInflater = LayoutInflater.from(ResidentAddActivity.this);
+            View view = layoutInflater.inflate(R.layout.item_picture, parent, false);
+            return new ResidentAddActivity.PictureHolder(view);
         }
 
         @Override
-        protected void onPostExecute(Void result) {
-            dialog.dismiss();
-//            simpleAdapter.notifyDataSetChanged();
+        public void onBindViewHolder(PictureHolder holder, int position) {
+            Drawable drawable = imageList.get(position);
+            holder.bindPicture(drawable);
+        }
+
+        @Override
+        public int getItemCount() {
+            return imageList.size();
+        }
+
+        public void itemAdded(int position) {
+            notifyItemInserted(position);
+        }
+    }
+
+    private class PictureHolder extends RecyclerView.ViewHolder {
+        private ImageView mPicture;
+
+        public PictureHolder(View itemView) {
+            super(itemView);
+            mPicture = (ImageView) itemView.findViewById(R.id.item_picture);
+        }
+
+        public void bindPicture(Drawable drawable) {
+            mPicture.setImageDrawable(drawable);
         }
     }
 }
