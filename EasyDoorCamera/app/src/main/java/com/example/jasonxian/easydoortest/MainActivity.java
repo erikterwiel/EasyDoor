@@ -2,6 +2,8 @@ package com.example.jasonxian.easydoortest;
 
 import android.Manifest;
 import android.app.ProgressDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -37,11 +39,13 @@ import com.amazonaws.util.IOUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -51,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String BUCKET_NAME = "picturedatabase";
     private static final String BUCKET_REGION = "us-east-1";
     private static final String PROVIDER_AUTHORITY = "erikterwiel.easydoorcamera.fileprovider";
+    private static final UUID mUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private static final int REQUEST_CAMERA = 100;
     private static final float SIMILARITY_THRESHOLD = 70F;
 
@@ -60,6 +65,8 @@ public class MainActivity extends AppCompatActivity {
     private AmazonRekognitionClient mAmazonRekognitionClient;
     private AWSCredentialsProvider mCredentialsProvider;
     private AmazonS3Client mS3Client;
+    private BluetoothAdapter mBluetoothAdapter;
+    private BluetoothSocket mBluetoothSocket;
     private String mCameraPath;
     private int mInputIndex = 0;
 
@@ -206,11 +213,45 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void unlockDoor() {
-
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        new ConnectBluetooth().execute();
+        boolean connected = false;
+        while (mBluetoothSocket.isConnected() && !connected) {
+            try {
+                mBluetoothSocket.getOutputStream().write("0".getBytes());
+                connected = true;
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
     }
 
     private void alertIntruder() {
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        new ConnectBluetooth().execute();
+        boolean connected = false;
+        while (mBluetoothSocket.isConnected() && !connected) {
+            try {
+                mBluetoothSocket.getOutputStream().write("1".getBytes());
+                connected = true;
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
 
+    private class ConnectBluetooth extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected Void doInBackground(Void... devices) {
+            try {
+                mBluetoothSocket = mBluetoothAdapter.getRemoteDevice("98:4F:EE:0F:38:5F")
+                        .createInsecureRfcommSocketToServiceRecord(mUUID);
+                mBluetoothSocket.connect();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+            return null;
+        }
     }
 
     @Override
