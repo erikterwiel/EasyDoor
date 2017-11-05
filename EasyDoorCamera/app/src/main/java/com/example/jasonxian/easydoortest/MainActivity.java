@@ -4,8 +4,6 @@ import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -14,52 +12,33 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.widget.ImageView;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-<<<<<<< HEAD
-import com.amazonaws.regions.Region;
-=======
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
->>>>>>> e8d31467a7a4b5419e046ff8941e7bbd4a564698
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.rekognition.AmazonRekognition;
 import com.amazonaws.services.rekognition.AmazonRekognitionClient;
-import com.amazonaws.services.rekognition.model.Attribute;
+import com.amazonaws.services.rekognition.model.BoundingBox;
 import com.amazonaws.services.rekognition.model.CompareFacesMatch;
 import com.amazonaws.services.rekognition.model.CompareFacesRequest;
 import com.amazonaws.services.rekognition.model.CompareFacesResult;
-import com.amazonaws.services.rekognition.model.DetectFacesRequest;
+import com.amazonaws.services.rekognition.model.ComparedFace;
 import com.amazonaws.services.rekognition.model.DetectLabelsRequest;
 import com.amazonaws.services.rekognition.model.DetectLabelsResult;
 import com.amazonaws.services.rekognition.model.Image;
 import com.amazonaws.services.rekognition.model.Label;
-import com.amazonaws.services.rekognition.model.S3Object;
-<<<<<<< HEAD
-import com.amazonaws.services.sns.AmazonSNSClient;
-import com.amazonaws.services.sns.model.PublishRequest;
-import com.amazonaws.services.sns.model.PublishResult;
-import com.amazonaws.services.sns.model.SubscribeRequest;
-=======
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.util.IOUtils;
->>>>>>> e8d31467a7a4b5419e046ff8941e7bbd4a564698
 
-import java.io.ByteArrayOutputStream;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.util.IOUtils;
+
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -77,6 +56,9 @@ public class MainActivity extends AppCompatActivity {
     private AmazonRekognitionClient mAmazonRekognitionClient;
     private AWSCredentialsProvider mCredentialsProvider;
     private String mImagePath;
+    private String mImagePathDownload;
+    private ImageView mImageView1;
+    private ImageView mImageView2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,12 +66,40 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mImageView1 = (ImageView) findViewById(R.id.image1);
+        mImageView2 = (ImageView) findViewById(R.id.image2);
+
         ActivityCompat.requestPermissions(this, new String[] {
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.READ_EXTERNAL_STORAGE}, 101);
 
         mTransferUtility = getTransferUtility(this);
         mAmazonRekognitionClient = new AmazonRekognitionClient(mCredentialsProvider);
+
+        File file = getFileDownload();
+        TransferObserver observer = mTransferUtility.download(
+                BUCKET_NAME,
+                "faustin_adiceam.png",
+                file);
+        observer.setTransferListener(new TransferListener() {
+            @Override
+            public void onStateChanged(int id, TransferState state) {
+                Log.i(TAG, state + "");
+            }
+
+            @Override
+            public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
+                int percentage = (int) (bytesCurrent / bytesTotal * 100);
+                Log.i(TAG, Integer.toString(percentage) + "% downloaded");
+            }
+
+            @Override
+            public void onError(int id, Exception ex) {
+                ex.printStackTrace();
+                Log.i(TAG, "Error detected");
+            }
+        });
+        Log.i(TAG, file.getAbsolutePath());
 
         launchCamera();
     }
@@ -111,8 +121,19 @@ public class MainActivity extends AppCompatActivity {
         return image;
     }
 
+    private File getFileDownload() {
+        File folder = new File("sdcard/Pictures/EasyDoor/Download");
+        if (!folder.exists()) folder.mkdir();
+        File image = new File(
+                folder, "input.jpg");
+        mImagePathDownload = image.getAbsolutePath();
+        return image;
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        mImageView1.setImageDrawable(Drawable.createFromPath(mImagePath));
+        mImageView2.setImageDrawable(Drawable.createFromPath(mImagePathDownload));
         new CompareFace().execute();
     }
 
@@ -150,9 +171,14 @@ public class MainActivity extends AppCompatActivity {
             try {
                 InputStream inputStream = new FileInputStream(mImagePath);
                 ByteBuffer imageBytes = ByteBuffer.wrap(IOUtils.toByteArray(inputStream));
-                Image image = new Image().withBytes(imageBytes);
+                Image targetImage = new Image().withBytes(imageBytes);
+
+                InputStream inputStream2 = new FileInputStream(mImagePathDownload);
+                ByteBuffer imageBytes2 = ByteBuffer.wrap(IOUtils.toByteArray(inputStream2));
+                Image sourceImage = new Image().withBytes(imageBytes2);
+
                 DetectLabelsRequest detectLabelsRequest = new DetectLabelsRequest()
-                        .withImage(image)
+                        .withImage(targetImage)
                         .withMaxLabels(10)
                         .withMinConfidence(75F);
                 DetectLabelsResult detectLabelsResult =
@@ -161,6 +187,26 @@ public class MainActivity extends AppCompatActivity {
                 for (int i = 0; i < labels.size(); i++) {
                     Log.i(TAG, labels.get(i).getName() + ":" + labels.get(i).getConfidence().toString());
                 }
+
+                Log.i(TAG, "Attempting to compare faces");
+                CompareFacesRequest compareFaceRequest = new CompareFacesRequest()
+                        .withSourceImage(sourceImage)
+                        .withTargetImage(targetImage)
+                        .withSimilarityThreshold(SIMILARITY_THRESHOLD);
+
+                CompareFacesResult compareFacesResult =
+                        mAmazonRekognitionClient.compareFaces(compareFaceRequest);
+                List<CompareFacesMatch> faceDetails = compareFacesResult.getFaceMatches();
+                for (int i = 0; i < faceDetails.size(); i++) {
+                    ComparedFace face = faceDetails.get(i).getFace();
+                    BoundingBox position = face.getBoundingBox();
+                    Log.i(TAG, "Face at " + position.getLeft().toString()
+                            + " " + position.getTop()
+                            + " matches with " + face.getConfidence().toString()
+                            + "% confidence.");
+                }
+
+
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -171,25 +217,5 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(Void result) {
             dialog.dismiss();
         }
-    }
-
-    private void sendEmail(){
-        AWSCredentials credentials;
-        try {
-            credentials = new BasicAWSCredentials("AKIAJTWTGYFXX5WUF3WA","Ve49J6xtSAMFzIJxdKvIv+4J3HAncpY3ljC5RMeo");
-        } catch (Exception e) {
-            throw new AmazonClientException("Pleases check for valid credentials", e);
-        }
-        String email = "name@gmail.com";
-        AmazonSNSClient snsClient = new AmazonSNSClient(credentials);
-        snsClient.setRegion(Region.getRegion(Regions.US_EAST_1));
-        SubscribeRequest subRequest = new SubscribeRequest("arn:aws:sns:us-east-1:953923891640:EasyDoorInfo", "email", email);
-        snsClient.subscribe(subRequest);
-        System.out.println("SubscribeRequest - " + snsClient.getCachedResponseMetadata(subRequest));
-        System.out.println("Check your email and confirm subscription.");
-        String msg = "My text published to SNS topic with email endpoint";
-        PublishRequest publishRequest = new PublishRequest("arn:aws:sns:us-east-1:953923891640:EasyDoorInfo", msg);
-        PublishResult publishResult = snsClient.publish(publishRequest);
-        System.out.println("MessageId - " + publishResult.getMessageId());
     }
 }
